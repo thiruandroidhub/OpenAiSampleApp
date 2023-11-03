@@ -39,8 +39,8 @@ class OpenAiPromptsViewModel : ViewModel() {
         try {
             val response =
                 openAiHttpClient.post("https://api.openai.com/v1/engines/davinci/completions") {
-                    setBody(PromptRequest("hi hello how are you?"))
                     contentType(ContentType.Application.Json)
+                    setBody(PromptRequest("hi hello how are you?"))
                 }
                     .body<PromptResponse>()
             println("TAG openAi response = $response")
