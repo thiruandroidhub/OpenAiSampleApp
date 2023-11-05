@@ -2,6 +2,7 @@ plugins {
     kotlin("multiplatform")
     id("com.android.library")
     id("org.jetbrains.compose")
+    kotlin("plugin.serialization").version("1.9.10")
 }
 
 kotlin {
@@ -35,7 +36,6 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
                 api("dev.icerock.moko:mvvm-core:0.16.1") // only ViewModel, EventsDispatcher, Dispatchers.UI
                 api("dev.icerock.moko:mvvm-compose:0.16.1") // api mvvm-core, getViewModel for Compose Multiplatfrom
-
             }
         }
         val androidMain by getting {
