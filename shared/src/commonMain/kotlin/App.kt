@@ -120,14 +120,14 @@ fun App() {
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             modifier = Modifier.fillMaxWidth(),
-                            onClick = { /* Handle click */ }
+                            onClick = { openAiViewModel.getNextPartOfStory(uiState.answer?.answer1 ?: "") }
                         ) {
                             Text(text = uiState.answer?.answer1 ?: "")
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             modifier = Modifier.fillMaxWidth(),
-                            onClick = { /* Handle click */ }
+                            onClick = { openAiViewModel.getNextPartOfStory(uiState.answer?.answer2 ?: "") }
                         ) {
                             Text(text = uiState.answer?.answer2 ?: "")
                         }

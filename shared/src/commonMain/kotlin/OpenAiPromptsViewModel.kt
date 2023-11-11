@@ -54,6 +54,66 @@ class OpenAiPromptsViewModel : ViewModel() {
         }
     }
 
+    fun getNextPartOfStory(optionSelected: String){
+        viewModelScope.launch {
+            _uiStateFlow.update { it.copy(loading = true) }
+            val story  = getOpenAiNextPart(optionSelected)
+            _uiStateFlow.update { it.copy(answer = story, loading = false) }
+        }
+    }
+
+    private suspend fun getOpenAiNextPart(optionSelected: String): Story {
+        val prompt = "Now the user has selected" + optionSelected + ". Please create a response with the next part of the story in a json format. " +
+                "Remember we have an app that will serialize your json response." +
+                "data class Story( " +
+                "val title: String? " +
+                "val passage : String, " +
+                "val imagePrompt: String, " +
+                "val question: String," +
+                "val answer1: String,"
+                "val answer2: String," +
+                "val id: String" +
+                ")" +
+                "Remember your response must only response with a Json class"
+
+        try {
+            val response =
+                openAiHttpClient.post("https://api.openai.com/v1/chat/completions") {
+                    contentType(ContentType.Application.Json)
+                    setBody(
+                        ChatData(
+                            model = "gpt-3.5-turbo",
+                            messages = listOf(
+                                Message(
+
+                                    role = "user",
+                                    content = prompt
+                                )
+                            ),
+                            temperature = 0.7
+                        )
+                    )
+                }.body<ChatCompletion>()
+            println("TAG openAi next part of Story = $response")
+            val json = Json { ignoreUnknownKeys = true }
+            val stringEncodedJson: String = response.choices.first().message.content
+
+            println("gpalma how many choices is there " + response.choices.size)
+
+            println("TAG data is " + stringEncodedJson)
+
+
+            val apiResponse = json.decodeFromString<Story>(stringEncodedJson)
+            println("TAG title " + apiResponse.title)
+            return apiResponse
+        } catch (e: Exception) {
+            println("TAG error receiving response = ${e.message}")
+            throw e
+            //   _uiStateFlow.update { it.copy(error = true, loading = false) }
+        }
+        // return ChatCompletion()
+    }
+
     @Serializable
     data class Story(
         val title: String?,
@@ -98,9 +158,9 @@ class OpenAiPromptsViewModel : ViewModel() {
             println("TAG openAi response = $response")
             val json = Json { ignoreUnknownKeys = true }
             val data = response.choices.first().message.content
-            println("gpalma data is " + data)
+            println("TAG data is " + data)
             val apiResponse = json.decodeFromString<Story>(data)
-            println("gpalma title " + apiResponse.title)
+            println("TAG title " + apiResponse.title)
             return apiResponse
         } catch (e: Exception) {
             println("TAG error receiving response = ${e.message}")
