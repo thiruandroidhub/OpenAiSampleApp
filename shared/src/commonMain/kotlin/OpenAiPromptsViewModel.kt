@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import model.ChatCompletion
 import model.ChatData
@@ -23,7 +24,7 @@ import model.Message
 @Immutable
 data class UiState(
     val loading: Boolean = false,
-    val answer: String = "",
+    val answer: OpenAiPromptsViewModel.Story? = null,
     val error: Boolean = false
 )
 
@@ -41,19 +42,41 @@ class OpenAiPromptsViewModel : ViewModel() {
         }
 
         defaultRequest {
-            header("Authorization", "Bearer api key")
+            header("Authorization", "Bearer ")
         }
     }
 
     fun getStory(content: String) {
         viewModelScope.launch {
             _uiStateFlow.update { it.copy(loading = true) }
-            val response  = getOpenApiPromptsResponse(content)
-            _uiStateFlow.update { it.copy(answer = response.choices.first().message.content, loading = false) }
+            val story  = getOpenApiPromptsResponse(content)
+            _uiStateFlow.update { it.copy(answer = story, loading = false) }
         }
     }
 
-    private suspend fun getOpenApiPromptsResponse(content: String): ChatCompletion {
+    @Serializable
+    data class Story(
+        val title: String?,
+        val passage : String,
+        val imagePrompt: String,
+        val question: String,
+        val answer1: String,
+        val answer2: String,
+        val id: String
+
+    )
+
+    private suspend fun getOpenApiPromptsResponse(content: String): Story {
+        val prompt = "Can you generate a 3 part interactive story for the application. Your response should only contain json. " +
+                "It is an interactive story because you will provide the user with options on what the character should do next. " +
+                "So the object created should be like private data class Story( val title: String? val passage : String, val imagePrompt: String, val question: String," +
+                "        val answer1: String," +
+                "        val answer2: String," +
+                "        val id: String" +
+                "    ) " + "make the question as long as needed but ensure that the answer 1 and answer 2 will be one word answers. So the answer fits on a button " +
+                " you can just generate the first part of the story. We will respond providing you with which option the user selected for you to generate the next part" +
+                "the story should be about" + content + " remember your response can only have the precise json otherwise the app i have created will" +
+                "not be able to serialise it"
         try {
             val response =
                 openAiHttpClient.post("https://api.openai.com/v1/chat/completions") {
@@ -63,8 +86,9 @@ class OpenAiPromptsViewModel : ViewModel() {
                             model = "gpt-3.5-turbo",
                             messages = listOf(
                                 Message(
+
                                     role = "user",
-                                    content = content
+                                    content = prompt
                                 )
                             ),
                             temperature = 0.7
@@ -72,11 +96,17 @@ class OpenAiPromptsViewModel : ViewModel() {
                     )
                 }.body<ChatCompletion>()
             println("TAG openAi response = $response")
-            return response
+            val json = Json { ignoreUnknownKeys = true }
+            val data = response.choices.first().message.content
+            println("gpalma data is " + data)
+            val apiResponse = json.decodeFromString<Story>(data)
+            println("gpalma title " + apiResponse.title)
+            return apiResponse
         } catch (e: Exception) {
             println("TAG error receiving response = ${e.message}")
-            _uiStateFlow.update { it.copy(error = true, loading = false) }
+           throw e
+         //   _uiStateFlow.update { it.copy(error = true, loading = false) }
         }
-        return ChatCompletion()
+       // return ChatCompletion()
     }
 }

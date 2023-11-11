@@ -1,3 +1,4 @@
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
@@ -21,7 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.icerock.moko.mvvm.compose.getViewModel
 import dev.icerock.moko.mvvm.compose.viewModelFactory
 
@@ -33,9 +39,9 @@ fun App() {
         val uiState by openAiViewModel.uiStateFlow.collectAsState()
 
         var question by remember { mutableStateOf("") }
-        var answer by remember { mutableStateOf("") }
+        var answer by remember { mutableStateOf<OpenAiPromptsViewModel.Story>(OpenAiPromptsViewModel.Story(passage = "", question = "", answer1 = "", answer2 = "", id = "2", imagePrompt = "", title = "")) }
 
-        answer = uiState.answer
+
 
         Column(
             modifier = Modifier
@@ -46,42 +52,90 @@ fun App() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                TextField(
-                    value = question,
-                    onValueChange = {
-                        question = it
-                    },
-                    label = { Text("Ask a story to create") },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 16.dp)
-                )
+                if(uiState.answer == null) {
+                    TextField(
+                        value = question,
+                        onValueChange = {
+                            question = it
+                        },
+                        label = { Text("Ask a story to create") },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 16.dp)
+                    )
 
-                Button(
-                    onClick = { openAiViewModel.getStory(content = question) },
-                    modifier = Modifier.align(Alignment.CenterVertically)
-                ) {
-                    Text("Create")
+                    Button(
+                        onClick = { openAiViewModel.getStory(content = question) },
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    ) {
+                        Text("Create")
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+            val scrollState = rememberScrollState()
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(scrollState)
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .align(Alignment.TopStart)
+                ) {
+                    when {
+                        uiState.loading -> LoadingIndicator()
+                        uiState.answer != null -> {
+                            Text(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                text = uiState.answer?.title ?: "",
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = uiState.answer?.passage ?: "",
+                                modifier = Modifier.fillMaxWidth()
+                            )
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                when {
-                    uiState.loading -> LoadingIndicator()
-                    uiState.answer.isNotBlank() -> {
+
+                        }
+                    }
+                }
+
+                // Buttons aligned to the bottom
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    if (uiState.answer != null) {
+
                         Text(
-                            text = answer,
+                            fontWeight = FontWeight.Bold,
+                            text = uiState.answer?.question ?: "",
                             modifier = Modifier.fillMaxWidth()
                         )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { /* Handle click */ }
+                        ) {
+                            Text(text = uiState.answer?.answer1 ?: "")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { /* Handle click */ }
+                        ) {
+                            Text(text = uiState.answer?.answer2 ?: "")
+                        }
                     }
                 }
             }
+
+
         }
     }
 }
