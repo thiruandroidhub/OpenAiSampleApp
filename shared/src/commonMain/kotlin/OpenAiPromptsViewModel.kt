@@ -63,19 +63,16 @@ class OpenAiPromptsViewModel : ViewModel() {
     }
 
     private suspend fun getOpenAiNextPart(optionSelected: String): Story {
-        val prompt = "Now the user has selected" + optionSelected + ". Please create a response with the next part of the story in a json format. " +
-                "Remember we have an app that will serialize your json response." +
-                "data class Story( " +
-                "val title: String? " +
-                "val passage : String, " +
-                "val imagePrompt: String, " +
-                "val question: String," +
-                "val answer1: String,"
-                "val answer2: String," +
-                "val id: String" +
-                ")" +
-                "Remember your response must only response with a Json class"
-
+        val prompt = "Now the user has selected " + optionSelected + " Your response should only contain json. " +
+        "It is an interactive story because you will provide the user with options on what the character should do next. " +
+                "So the object created should be like private data class Story( val title: String? val passage : String, val imagePrompt: String, val question: String," +
+                "        val answer1: String," +
+                "        val answer2: String," +
+                "        val id: String" +
+                "    ) " + "make the question as long as needed but ensure that the answer 1 and answer 2 will be one word answers. So the answer fits on a button " +
+                " you can just generate the first part of the story. We will respond providing you with which option the user selected for you to generate the next part" +
+                " remember your response can only have the precise json otherwise the app i have created will" +
+                "not be able to serialise it"
         try {
             val response =
                 openAiHttpClient.post("https://api.openai.com/v1/chat/completions") {
@@ -98,7 +95,7 @@ class OpenAiPromptsViewModel : ViewModel() {
             val json = Json { ignoreUnknownKeys = true }
             val stringEncodedJson: String = response.choices.first().message.content
 
-            println("gpalma how many choices is there " + response.choices.size)
+            println("TAG how many choices is there " + response.choices.size)
 
             println("TAG data is " + stringEncodedJson)
 
