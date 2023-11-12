@@ -42,3 +42,15 @@ data class Usage(
     val total_tokens: Int = -1
 )
 
+
+@Serializable
+data class Story(
+    val title: String?,
+    val passage : String,
+    val question: String,
+    val answer1: String,
+    val answer2: String,
+    val id: String
+)
+
+

@@ -15,16 +15,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import model.ChatCompletion
 import model.ChatData
 import model.Message
+import model.Story
 
 @Immutable
 data class UiState(
     val loading: Boolean = false,
-    val answer: OpenAiPromptsViewModel.Story? = null,
+    val answer: Story? = null,
     val error: Boolean = false
 )
 
@@ -42,108 +42,43 @@ class OpenAiPromptsViewModel : ViewModel() {
         }
 
         defaultRequest {
-            header("Authorization", "Bearer ")
+            header("Authorization", "Bearer xxx")
         }
     }
 
     fun getStory(content: String) {
         viewModelScope.launch {
             _uiStateFlow.update { it.copy(loading = true) }
-            val story  = getOpenApiPromptsResponse(content)
+            val story = getOpenApiPromptsResponse(content)
             _uiStateFlow.update { it.copy(answer = story, loading = false) }
         }
     }
 
-    fun getNextPartOfStory(optionSelected: String){
+    fun getNextPartOfStory(passage: String, question: String, optionSelected: String) {
         viewModelScope.launch {
             _uiStateFlow.update { it.copy(loading = true) }
-            val story  = getOpenAiNextPart(optionSelected)
+            val story = getOpenAiNextPart(passage, question, optionSelected)
             _uiStateFlow.update { it.copy(answer = story, loading = false) }
         }
     }
 
-    private suspend fun getOpenAiNextPart(optionSelected: String): Story {
-        val prompt = "Now the user has selected " + optionSelected + " Your response should only contain json. " +
-        "It is an interactive story because you will provide the user with options on what the character should do next. " +
-                "So the object created should be like private data class Story( val title: String? val passage : String, val imagePrompt: String, val question: String," +
-                "        val answer1: String," +
-                "        val answer2: String," +
-                "        val id: String" +
-                "    ) " + "make the question as long as needed but ensure that the answer 1 and answer 2 will be one word answers. So the answer fits on a button " +
-                " you can just generate the first part of the story. We will respond providing you with which option the user selected for you to generate the next part" +
-                " remember your response can only have the precise json otherwise the app i have created will" +
-                "not be able to serialise it"
-        try {
-            val response =
-                openAiHttpClient.post("https://api.openai.com/v1/chat/completions") {
-                    contentType(ContentType.Application.Json)
-                    setBody(
-                        ChatData(
-                            model = "gpt-3.5-turbo",
-                            messages = listOf(
-                                Message(
-
-                                    role = "user",
-                                    content = prompt
-                                )
-                            ),
-                            temperature = 0.7
-                        )
-                    )
-                }.body<ChatCompletion>()
-            println("TAG openAi next part of Story = $response")
-            val json = Json { ignoreUnknownKeys = true }
-            val stringEncodedJson: String = response.choices.first().message.content
-
-            println("TAG how many choices is there " + response.choices.size)
-
-            println("TAG data is " + stringEncodedJson)
-
-
-            val apiResponse = json.decodeFromString<Story>(stringEncodedJson)
-            println("TAG title " + apiResponse.title)
-            return apiResponse
-        } catch (e: Exception) {
-            println("TAG error receiving response = ${e.message}")
-            throw e
-            //   _uiStateFlow.update { it.copy(error = true, loading = false) }
-        }
-        // return ChatCompletion()
-    }
-
-    @Serializable
-    data class Story(
-        val title: String?,
-        val passage : String,
-        val imagePrompt: String,
-        val question: String,
-        val answer1: String,
-        val answer2: String,
-        val id: String
-
-    )
-
     private suspend fun getOpenApiPromptsResponse(content: String): Story {
-        val prompt = "Can you generate a 3 part interactive story for the application. Your response should only contain json. " +
-                "It is an interactive story because you will provide the user with options on what the character should do next. " +
-                "So the object created should be like private data class Story( val title: String? val passage : String, val imagePrompt: String, val question: String," +
-                "        val answer1: String," +
-                "        val answer2: String," +
-                "        val id: String" +
-                "    ) " + "make the question as long as needed but ensure that the answer 1 and answer 2 will be one word answers. So the answer fits on a button " +
-                " you can just generate the first part of the story. We will respond providing you with which option the user selected for you to generate the next part" +
-                "the story should be about" + content + " remember your response can only have the precise json otherwise the app i have created will" +
-                "not be able to serialise it"
+        val prompt =
+            "Can you generate the first part of an interactive story for the application. Your response should only contain json." +
+                    "It is an interactive story because you will provide the user with options on what the character should do next." +
+                    "So the json contain id, title, passage, question, answer1, answer2. All fields should be in String type." +
+                    "Make the question as long as needed but ensure that the answer 1 and answer 2 will be one word answers. So the answer fits on a button." +
+                    "You can just generate the first part of the story" +
+                    "The story should be about" + content + "your response can only have the precise json otherwise the app i have created will not be able to serialise it."
         try {
             val response =
                 openAiHttpClient.post("https://api.openai.com/v1/chat/completions") {
                     contentType(ContentType.Application.Json)
                     setBody(
                         ChatData(
-                            model = "gpt-3.5-turbo",
+                            model = "gpt-4",
                             messages = listOf(
                                 Message(
-
                                     role = "user",
                                     content = prompt
                                 )
@@ -155,15 +90,56 @@ class OpenAiPromptsViewModel : ViewModel() {
             println("TAG openAi response = $response")
             val json = Json { ignoreUnknownKeys = true }
             val data = response.choices.first().message.content
-            println("TAG data is " + data)
+            println("TAG data is $data")
             val apiResponse = json.decodeFromString<Story>(data)
             println("TAG title " + apiResponse.title)
             return apiResponse
         } catch (e: Exception) {
             println("TAG error receiving response = ${e.message}")
-           throw e
-         //   _uiStateFlow.update { it.copy(error = true, loading = false) }
+            throw e
         }
-       // return ChatCompletion()
+    }
+
+    private suspend fun getOpenAiNextPart(
+        passage: String,
+        question: String,
+        optionSelected: String
+    ): Story {
+        val prompt =
+            "The user has answered with an option for the question asked based on the passage shown. The passage is $passage. The question is $question. And the option selected is $optionSelected." +
+                    "Can you generate the second part of the interactive story based on the option selected for the question asked. Your response should only contain json." +
+                    "The second part should also provide the user with options on what the character should do next." +
+                    "So the json contain id, title, passage, question, answer1, answer2. All fields should be in String type." +
+                    "Make the question as long as needed but ensure that the answer 1 and answer 2 will be one word answers. So the answer fits on a button." +
+                    "Your response can only have the precise json otherwise the app i have created will not be able to serialise it."
+        try {
+            val response =
+                openAiHttpClient.post("https://api.openai.com/v1/chat/completions") {
+                    contentType(ContentType.Application.Json)
+                    setBody(
+                        ChatData(
+                            model = "gpt-4",
+                            messages = listOf(
+                                Message(
+                                    role = "user",
+                                    content = prompt
+                                )
+                            ),
+                            temperature = 0.7
+                        )
+                    )
+                }.body<ChatCompletion>()
+            println("TAG openAi next part of Story = $response")
+            val json = Json { ignoreUnknownKeys = true }
+            val stringEncodedJson: String = response.choices.first().message.content
+            println("TAG how many choices is there " + response.choices.size)
+            println("TAG data is $stringEncodedJson")
+            val apiResponse = json.decodeFromString<Story>(stringEncodedJson)
+            println("TAG title " + apiResponse.title)
+            return apiResponse
+        } catch (e: Exception) {
+            println("TAG error receiving response = ${e.message}")
+            throw e
+        }
     }
 }

@@ -1,4 +1,3 @@
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,12 +23,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.icerock.moko.mvvm.compose.getViewModel
 import dev.icerock.moko.mvvm.compose.viewModelFactory
+import model.Story
 
 @Composable
 fun App() {
@@ -38,8 +37,19 @@ fun App() {
 
         val uiState by openAiViewModel.uiStateFlow.collectAsState()
 
-        var question by remember { mutableStateOf("") }
-        var answer by remember { mutableStateOf<OpenAiPromptsViewModel.Story>(OpenAiPromptsViewModel.Story(passage = "", question = "", answer1 = "", answer2 = "", id = "2", imagePrompt = "", title = "")) }
+        var question by remember { mutableStateOf("Harry Potter") }
+        var answer by remember {
+            mutableStateOf(
+                Story(
+                    passage = "",
+                    question = "",
+                    answer1 = "",
+                    answer2 = "",
+                    id = "2",
+                    title = ""
+                )
+            )
+        }
 
 
 
@@ -52,7 +62,7 @@ fun App() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                if(uiState.answer == null) {
+                if (uiState.answer == null) {
                     TextField(
                         value = question,
                         onValueChange = {
@@ -120,14 +130,26 @@ fun App() {
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             modifier = Modifier.fillMaxWidth(),
-                            onClick = { openAiViewModel.getNextPartOfStory(uiState.answer?.answer1 ?: "") }
+                            onClick = {
+                                openAiViewModel.getNextPartOfStory(
+                                    passage = uiState.answer?.passage ?: "",
+                                    question = uiState.answer?.question ?: "",
+                                    optionSelected = uiState.answer?.answer1 ?: ""
+                                )
+                            }
                         ) {
                             Text(text = uiState.answer?.answer1 ?: "")
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             modifier = Modifier.fillMaxWidth(),
-                            onClick = { openAiViewModel.getNextPartOfStory(uiState.answer?.answer2 ?: "") }
+                            onClick = {
+                                openAiViewModel.getNextPartOfStory(
+                                    passage = uiState.answer?.passage ?: "",
+                                    question = uiState.answer?.question ?: "",
+                                    optionSelected = uiState.answer?.answer2 ?: ""
+                                )
+                            }
                         ) {
                             Text(text = uiState.answer?.answer2 ?: "")
                         }
