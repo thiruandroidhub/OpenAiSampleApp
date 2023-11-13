@@ -51,7 +51,24 @@ data class Story(
     val question: String,
     val answer1: String,
     val answer2: String,
+    val imagePrompt: String,
     val id: String
 )
 
+@Serializable
+data class DalleRequest(
+    val model: String,
+    val prompt: String,
+    val n: Int,
+    val size: String
+)
+@Serializable
+data class DalleResponse(
+    val created: Long,
+    val data: List<DataItem>
+)
+@Serializable
+data class DataItem(
+    val url: String
+)
 

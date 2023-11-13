@@ -46,6 +46,7 @@ fun App() {
                     answer1 = "",
                     answer2 = "",
                     id = "2",
+                    imagePrompt = "",
                     title = ""
                 )
             )
