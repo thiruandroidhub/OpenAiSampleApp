@@ -132,7 +132,7 @@ fun App() {
                             modifier = Modifier.fillMaxWidth(),
                             onClick = {
                                 openAiViewModel.getNextPartOfStory(
-                                    passage = uiState.answer?.passage ?: "",
+                                    entirePassage = uiState.answer?.entirePassage ?: "",
                                     question = uiState.answer?.question ?: "",
                                     optionSelected = uiState.answer?.answer1 ?: ""
                                 )
@@ -145,7 +145,7 @@ fun App() {
                             modifier = Modifier.fillMaxWidth(),
                             onClick = {
                                 openAiViewModel.getNextPartOfStory(
-                                    passage = uiState.answer?.passage ?: "",
+                                    entirePassage = uiState.answer?.passage ?: "",
                                     question = uiState.answer?.question ?: "",
                                     optionSelected = uiState.answer?.answer2 ?: ""
                                 )

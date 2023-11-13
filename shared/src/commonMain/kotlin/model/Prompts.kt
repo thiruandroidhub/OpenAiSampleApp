@@ -45,6 +45,7 @@ data class Usage(
 
 @Serializable
 data class Story(
+    val entirePassage: String = "",
     val title: String?,
     val passage : String,
     val question: String,
