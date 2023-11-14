@@ -50,17 +50,26 @@ class OpenAiPromptsViewModel : ViewModel() {
         }
     }
 
+
     fun getStory(content: String) {
         viewModelScope.launch {
             _uiStateFlow.update { it.copy(loading = true) }
+
+            // Asynchronously fetch the story
             val storyDeferred = async { getOpenApiPromptsResponse(content) }
             val story = storyDeferred.await()
+
+            // Update UI state with the new story (but without the image URL yet)
+            _uiStateFlow.update { it.copy(answer = story.copy(entirePassage = story.passage), loading = false) }
+
+            // Asynchronously fetch the image URL
             val imageDeferred = async { getOpenApiImage(story.imagePrompt) }
             val imageUrl = imageDeferred.await()
-            val newPassage = story.passage
-            _uiStateFlow.update {
-                it.copy(
-                    answer = story.copy(entirePassage = newPassage, imagePrompt = imageUrl),
+
+            // Update UI state again, this time with the image URL
+            _uiStateFlow.update { currentState ->
+                currentState.copy(
+                    answer = currentState.answer?.copy(imagePrompt = imageUrl),
                     loading = false
                 )
             }
