@@ -10,6 +10,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,41 +53,43 @@ class OpenAiPromptsViewModel : ViewModel() {
     fun getStory(content: String) {
         viewModelScope.launch {
             _uiStateFlow.update { it.copy(loading = true) }
-            val story = getOpenApiPromptsResponse(content)
+            val storyDeferred = async { getOpenApiPromptsResponse(content) }
+            val story = storyDeferred.await()
+            val imageDeferred = async { getOpenApiImage(story.imagePrompt) }
+            val imageUrl = imageDeferred.await()
             val newPassage = story.passage
             _uiStateFlow.update {
                 it.copy(
-                    answer = story.copy(entirePassage = "$newPassage"),
+                    answer = story.copy(entirePassage = newPassage, imagePrompt = imageUrl),
                     loading = false
                 )
             }
-            getOpenApiImage(story.imagePrompt)
         }
     }
 
     fun getNextPartOfStory(entirePassage: String, question: String, optionSelected: String) {
         viewModelScope.launch {
             _uiStateFlow.update { it.copy(loading = true) }
-            val story = getOpenAiNextPart(entirePassage, question, optionSelected)
+            val storyDeferred = async { getOpenAiNextPart(entirePassage, question, optionSelected) }
+            val story = storyDeferred.await()
+            val imageDeferred = async { getOpenApiImage(story.imagePrompt) }
+            val imageUrl = imageDeferred.await()
             val currentPassage = _uiStateFlow.value.answer?.entirePassage ?: ""
             val newPassage = story.passage
             _uiStateFlow.update {
                 it.copy(
-                    answer = story.copy(entirePassage = "$currentPassage $newPassage"),
+                    answer = story.copy(entirePassage = "$currentPassage $newPassage", imagePrompt = imageUrl),
                     loading = false
                 )
             }
-
-         //   getOpenApiImage(story.imagePrompt)
         }
     }
 
 
-    private suspend fun getOpenApiImage(content: String) {
+    private suspend fun getOpenApiImage(content: String): String {
         try {
-            println("TAG whats the content: " + content)
             val response =
-                openAiHttpClient.post("https://api.openai.com/v1/images/generation") {
+                openAiHttpClient.post("https://api.openai.com/v1/images/generations") {
                     contentType(ContentType.Application.Json)
                     setBody(
                         DalleRequest(
@@ -97,10 +100,8 @@ class OpenAiPromptsViewModel : ViewModel() {
                         )
                     )
                 }.body<DalleResponse>()
-            println("TAG openAi response = $response")
-            val json = Json { ignoreUnknownKeys = true }
             val data: DataItem = response.data.first()
-            println("gpalma data " + data.url)
+            return data.url
         } catch (e: Exception) {
             println("TAG error receiving response = ${e.message}")
             throw e
@@ -116,7 +117,6 @@ class OpenAiPromptsViewModel : ViewModel() {
                     "You can just generate the first part of the story" +
                     "The story should be about $content. " +
                     "for imagePrompt can you generate an appropriate prompt that we may use in order to generate a nice image which represents the content of the passage" +
-                    "Your response can only have the precise json otherwise the app i have created will not be able to serialise it."
                     "Your response can only have the precise json otherwise the app i have created will not be able to serialise it."
         println("TAG first prompt is = $prompt")
         try {
@@ -136,13 +136,9 @@ class OpenAiPromptsViewModel : ViewModel() {
                         )
                     )
                 }.body<ChatCompletion>()
-            println("TAG openAi response = $response")
             val json = Json { ignoreUnknownKeys = true }
             val data = response.choices.first().message.content
-            println("TAG data is $data")
-            val apiResponse = json.decodeFromString<Story>(data)
-            println("TAG title " + apiResponse.title)
-            return apiResponse
+            return json.decodeFromString(data)
         } catch (e: Exception) {
             println("TAG error receiving response = ${e.message}")
             throw e
@@ -180,14 +176,9 @@ class OpenAiPromptsViewModel : ViewModel() {
                         )
                     )
                 }.body<ChatCompletion>()
-            println("TAG openAi next part of Story = $response")
             val json = Json { ignoreUnknownKeys = true }
             val stringEncodedJson: String = response.choices.first().message.content
-            println("TAG how many choices is there " + response.choices.size)
-            println("TAG data is $stringEncodedJson")
-            val apiResponse = json.decodeFromString<Story>(stringEncodedJson)
-            println("TAG title " + apiResponse.title)
-            return apiResponse
+            return json.decodeFromString(stringEncodedJson)
         } catch (e: Exception) {
             println("TAG error receiving response = ${e.message}")
             throw e

@@ -69,6 +69,7 @@ data class DalleResponse(
 )
 @Serializable
 data class DataItem(
+    val revised_prompt: String,
     val url: String
 )
 

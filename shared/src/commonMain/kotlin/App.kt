@@ -3,10 +3,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,11 +25,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.icerock.moko.mvvm.compose.getViewModel
 import dev.icerock.moko.mvvm.compose.viewModelFactory
+import io.kamel.image.KamelImage
+import io.kamel.image.asyncPainterResource
 import model.Story
 
 @Composable
@@ -38,26 +43,11 @@ fun App() {
         val uiState by openAiViewModel.uiStateFlow.collectAsState()
 
         var question by remember { mutableStateOf("Harry Potter") }
-        var answer by remember {
-            mutableStateOf(
-                Story(
-                    passage = "",
-                    question = "",
-                    answer1 = "",
-                    answer2 = "",
-                    id = "2",
-                    imagePrompt = "",
-                    title = ""
-                )
-            )
-        }
-
-
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(8.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -72,7 +62,7 @@ fun App() {
                         label = { Text("Ask a story to create") },
                         modifier = Modifier
                             .weight(1f)
-                            .padding(end = 16.dp)
+                            .padding(end = 8.dp)
                     )
 
                     Button(
@@ -84,14 +74,14 @@ fun App() {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             val scrollState = rememberScrollState()
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
                         .verticalScroll(scrollState)
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .padding(8.dp)
                         .align(Alignment.TopStart)
                 ) {
                     when {
@@ -108,8 +98,12 @@ fun App() {
                                 text = uiState.answer?.passage ?: "",
                                 modifier = Modifier.fillMaxWidth()
                             )
-
-
+                            KamelImage(
+                                asyncPainterResource(uiState.answer?.imagePrompt ?: ""),
+                                "",
+                                contentScale = ContentScale.FillBounds,
+                                modifier = Modifier.fillMaxWidth().aspectRatio(1.0f)
+                            )
                         }
                     }
                 }
@@ -128,7 +122,7 @@ fun App() {
                             text = uiState.answer?.question ?: "",
                             modifier = Modifier.fillMaxWidth()
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             modifier = Modifier.fillMaxWidth(),
                             onClick = {
@@ -157,8 +151,6 @@ fun App() {
                     }
                 }
             }
-
-
         }
     }
 }
