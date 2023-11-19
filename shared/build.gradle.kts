@@ -22,8 +22,10 @@ kotlin {
     }
 
     sourceSets {
+        val voyagerVersion = "1.0.0-rc10"
         val commonMain by getting {
             dependencies {
+                implementation("cafe.adriel.voyager:voyager-navigator:$voyagerVersion")
                 implementation(compose.runtime)
                 implementation(compose.foundation)
                 implementation(compose.material)
@@ -85,4 +87,7 @@ android {
     kotlin {
         jvmToolchain(17)
     }
+}
+dependencies {
+    implementation("androidx.activity:activity-ktx:1.8.1")
 }
